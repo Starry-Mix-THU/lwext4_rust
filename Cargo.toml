@@ -1,22 +1,22 @@
 [package]
 name = "lwext4_rust"
-authors = ["Luoyuan Xiao <xiaoluoyuan@163.com>"]
+authors = ["Luoyuan Xiao <xiaoluoyuan@163.com>", "Mivik <mivikq@gmail.com>"]
 version = "0.2.0"
-edition = "2018"
+edition = "2021"
 license = "GPL-2.0"
-repository = "https://github.com/elliott10/lwext4_rust"
+repository = "https://github.com/Mivik/lwext4_rust"
 description = "lwext4 in Rust"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 links = "lwext4"
 build = "build.rs"
 
 [features]
-default = ["print"]
+default = ["print", "std"]
 print = ["printf-compat"]
+std = []
 
 [dependencies]
+lock_api = "0.4.12"
 log = "0.4"
 printf-compat = { version = "0.1", default-features = false, optional = true }
 

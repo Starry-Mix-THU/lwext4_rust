@@ -6,6 +6,8 @@
 
 // +++++++++ musl +++++++++
 
+#ifdef LWEXT4_ULIBC
+
 #define ALIGN (sizeof(size_t))
 #define ONES ((size_t) - 1 / UCHAR_MAX)
 #define HIGHS (ONES * (UCHAR_MAX / 2 + 1))
@@ -156,3 +158,5 @@ void qsort(void *base,
 {
         return qsort_r(base, nel, width, (__compar_d_fn_t)comp, NULL);
 }
+
+#endif
