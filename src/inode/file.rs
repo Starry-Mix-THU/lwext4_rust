@@ -5,7 +5,9 @@ use core::{
 
 use super::InodeRef;
 
-use crate::{error::Context, ffi::*, util::get_block_size, Ext4Result, InodeType, SystemHal, WritebackGuard};
+use crate::{
+    error::Context, ffi::*, util::get_block_size, Ext4Result, InodeType, SystemHal, WritebackGuard,
+};
 
 fn take<'a>(buf: &mut &'a [u8], cnt: usize) -> &'a [u8] {
     let (first, rem) = buf.split_at(cnt.min(buf.len()));
@@ -62,7 +64,7 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         }
     }
 
-    pub fn read_at(&mut self, pos: u64, mut buf: &mut [u8]) -> Ext4Result<usize> {
+    pub fn read_at(&mut self, mut buf: &mut [u8], pos: u64) -> Ext4Result<usize> {
         unsafe {
             let file_size = self.size();
             let block_size = get_block_size(self.superblock());
@@ -147,7 +149,7 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         }
     }
 
-    pub fn write_at(&mut self, pos: u64, mut buf: &[u8]) -> Ext4Result<usize> {
+    pub fn write_at(&mut self, mut buf: &[u8], pos: u64) -> Ext4Result<usize> {
         unsafe {
             let file_size = self.size();
             let block_size = get_block_size(self.superblock());
