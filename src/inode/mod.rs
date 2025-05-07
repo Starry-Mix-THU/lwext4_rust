@@ -12,8 +12,9 @@ use crate::{ffi::*, SystemHal};
 
 /// Inode type.
 #[repr(u8)]
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(PartialEq, Default, Eq, Clone, Copy, Debug)]
 pub enum InodeType {
+    #[default]
     Unknown = 0,
     Fifo = 1,
     CharacterDevice = 2,

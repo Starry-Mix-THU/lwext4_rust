@@ -15,6 +15,8 @@ pub struct FileAttr {
     pub nlink: u64,
     /// Permission mode
     pub mode: u32,
+    /// Type of file
+    pub node_type: InodeType,
     /// User ID of owner
     pub uid: u32,
     /// Group ID of owner
@@ -127,6 +129,7 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         attr.ino = u32::from_le(self.inner.index);
         attr.nlink = self.nlink() as _;
         attr.mode = self.mode();
+        attr.node_type = self.inode_type();
         attr.uid = self.uid() as _;
         attr.gid = self.gid() as _;
         attr.size = self.size();
