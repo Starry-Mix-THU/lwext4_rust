@@ -108,6 +108,10 @@ impl RawDirEntry {
         self.inner.inode = u32::to_le(ino);
     }
 
+    pub fn len(&self) -> u16 {
+        u16::from_le(self.inner.entry_len)
+    }
+
     pub fn name<'a>(&'a self, sb: &ext4_sblock) -> &'a [u8] {
         let mut name_len = self.inner.name_len as u16;
         if revision_tuple(sb) < (0, 5) {
@@ -150,6 +154,10 @@ impl DirEntry<'_> {
 
     pub fn inode_type(&self) -> InodeType {
         self.inner.inode_type(self.sb)
+    }
+
+    pub fn len(&self) -> u16 {
+        self.inner.len()
     }
 
     pub fn raw_entry(&self) -> &RawDirEntry {
