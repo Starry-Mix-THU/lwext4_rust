@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index eec0993..e735f60 100644
+index eec0993..ee36a4d 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -43,10 +43,16 @@ else()
@@ -50,6 +50,22 @@ index 12ee5c7..0ef73ca 100644
  generic:
  	$(call generate_common,$@)
  
+diff --git a/include/ext4_types.h b/include/ext4_types.h
+index c9cdd34..b69936d 100644
+--- a/include/ext4_types.h
++++ b/include/ext4_types.h
+@@ -822,6 +822,11 @@ struct jbd_sb {
+ 
+ #if CONFIG_USE_USER_MALLOC
+ 
++void *ext4_user_malloc(size_t size);
++void *ext4_user_calloc(size_t nmemb, size_t size);
++void *ext4_user_realloc(void *ptr, size_t size);
++void ext4_user_free(void *ptr);
++
+ #define ext4_malloc  ext4_user_malloc
+ #define ext4_calloc  ext4_user_calloc
+ #define ext4_realloc ext4_user_realloc
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
 index 257b8cc..b330e70 100644
 --- a/src/CMakeLists.txt
