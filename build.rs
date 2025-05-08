@@ -34,8 +34,7 @@ fn main() {
 
     let arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
     let lwext4_lib = &format!("lwext4-{}", arch);
-    let lwext4_lib_path = &format!("c/lwext4/lib{}.a", lwext4_lib);
-    if !Path::new(lwext4_lib_path).exists() {
+    {
         let status = Command::new("make")
             .args(&[
                 "musl-generic",
@@ -43,7 +42,10 @@ fn main() {
                 c_path.to_str().expect("invalid path of lwext4"),
             ])
             .arg(&format!("ARCH={}", arch))
-            .arg(&format!("ULIBC={}", if cfg!(feature = "std") { "OFF" } else { "ON" }))
+            .arg(&format!(
+                "ULIBC={}",
+                if cfg!(feature = "std") { "OFF" } else { "ON" }
+            ))
             .status()
             .expect("failed to execute process: make lwext4");
         assert!(status.success());
@@ -68,7 +70,7 @@ fn main() {
         c_path.to_str().unwrap()
     );
     println!("cargo:rerun-if-changed=c/wrapper.h");
-    println!("cargo:rerun-if-changed={}", c_path.to_str().unwrap());
+    println!("cargo:rerun-if-changed={}/src", c_path.to_str().unwrap());
 }
 
 fn generates_bindings_to_rust(mpath: &str) {
@@ -83,7 +85,7 @@ fn generates_bindings_to_rust(mpath: &str) {
         .clang_arg("-I./c/lwext4/build_musl-generic/include/")
         .layout_tests(false)
         // Tell cargo to invalidate the built crate whenever any of the included header files changed.
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
+        .parse_callbacks(Box::new(CustomCargoCallbacks))
         // Finish the builder and generate the bindings.
         .generate()
         .expect("Unable to generate bindings");
@@ -93,4 +95,26 @@ fn generates_bindings_to_rust(mpath: &str) {
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
+}
+
+#[derive(Debug)]
+struct CustomCargoCallbacks;
+impl bindgen::callbacks::ParseCallbacks for CustomCargoCallbacks {
+    fn header_file(&self, filename: &str) {
+        add_include(filename);
+    }
+
+    fn include_file(&self, filename: &str) {
+        add_include(filename);
+    }
+
+    fn read_env_var(&self, key: &str) {
+        println!("cargo:rerun-if-env-changed={key}");
+    }
+}
+
+fn add_include(filename: &str) {
+    if !Path::new(filename).ends_with("ext4_config.h") {
+        println!("cargo:rerun-if-changed={filename}");
+    }
 }
