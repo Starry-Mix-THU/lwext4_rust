@@ -1,36 +1,11 @@
+use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::{env, fs};
 
 fn main() {
     let c_path = PathBuf::from("c/lwext4")
         .canonicalize()
         .expect("cannot canonicalize path");
-
-    let lwext4_make = Path::new("c/lwext4/toolchain/musl-generic.cmake");
-    let lwext4_patch = Path::new("c/lwext4-make.patch").canonicalize().unwrap();
-
-    if !Path::new(lwext4_make).exists() {
-        println!("Retrieve lwext4 source code");
-        let git_status = Command::new("git")
-            .args(&["submodule", "update", "--init", "--recursive"])
-            .status()
-            .expect("failed to execute process: git submodule");
-        assert!(git_status.success());
-
-        println!("To patch lwext4 src");
-        Command::new("git")
-            .args(&["apply", lwext4_patch.to_str().unwrap()])
-            .current_dir(c_path.clone())
-            .spawn()
-            .expect("failed to execute process: git apply patch");
-
-        fs::copy(
-            "c/musl-generic.cmake",
-            "c/lwext4/toolchain/musl-generic.cmake",
-        )
-        .unwrap();
-    }
 
     let arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
     let lwext4_lib = &format!("lwext4-{}", arch);
