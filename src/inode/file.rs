@@ -6,7 +6,8 @@ use core::{
 use super::InodeRef;
 
 use crate::{
-    error::Context, ffi::*, util::get_block_size, Ext4Result, InodeType, SystemHal, WritebackGuard,
+    error::Context, ffi::*, util::get_block_size, Ext4Error, Ext4Result, InodeType, SystemHal,
+    WritebackGuard,
 };
 
 fn take<'a>(buf: &mut &'a [u8], cnt: usize) -> &'a [u8] {
@@ -226,7 +227,55 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         }
     }
 
+    fn truncate(&mut self, size: u64) -> Ext4Result<()> {
+        unsafe {
+            let bdev = (*self.inner.fs).bdev;
+            let _guard = WritebackGuard::new(bdev);
+            ext4_fs_truncate_inode(self.inner.as_mut(), size).context("ext4_fs_truncate_inode")
+        }
+    }
+
+    pub fn set_symlink(&mut self, target: &[u8]) -> Ext4Result<()> {
+        let inode = self.raw_inode();
+        let block_size = get_block_size(self.superblock());
+        if target.len() > block_size as usize {
+            // ENAMETOOLONG
+            return 36.context("symlink too long");
+        }
+
+        unsafe {
+            if target.len() < size_of::<u32>() * EXT4_INODE_BLOCKS as usize {
+                let ptr = (self.inner.inode as *mut u8).add(offset_of!(ext4_inode, blocks));
+                slice::from_raw_parts_mut(ptr, target.len()).copy_from_slice(target);
+                ext4_inode_clear_flag(self.inner.inode, EXT4_INODE_FLAG_EXTENTS);
+            } else {
+                ext4_fs_inode_blocks_init(self.inner.fs, self.inner.as_mut());
+                let mut fblock: u64 = 0;
+                let mut sblock: u32 = 0;
+                ext4_fs_append_inode_dblk(self.inner.as_mut(), &mut fblock, &mut sblock)
+                    .context("ext4_fs_append_inode_dblk")?;
+
+                let off = fblock * block_size as u64;
+                ext4_block_writebytes(
+                    (*self.inner.fs).bdev,
+                    off,
+                    target.as_ptr() as _,
+                    target.len() as _,
+                )
+                .context("ext4_block_writebytes")?;
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn set_len(&mut self, len: u64) -> Ext4Result<()> {
-        todo!()
+        let cur_len = self.size();
+        if len < cur_len {
+            self.truncate(len)?;
+        } else if len > cur_len {
+            todo!()
+        }
+        Ok(())
     }
 }
