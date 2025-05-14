@@ -98,6 +98,9 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
     pub fn write_at(&mut self, ino: u32, buf: &[u8], offset: u64) -> Ext4Result<usize> {
         self.inode_ref(ino)?.write_at(buf, offset)
     }
+    pub fn set_len(&mut self, ino: u32, len: u64) -> Ext4Result<()> {
+        self.inode_ref(ino)?.set_len(len)
+    }
     pub fn lookup(&mut self, parent: u32, name: &str) -> Ext4Result<DirLookupResult<Hal>> {
         self.inode_ref(parent)?.lookup(name)
     }

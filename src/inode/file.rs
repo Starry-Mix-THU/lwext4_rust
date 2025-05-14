@@ -156,7 +156,10 @@ impl<Hal: SystemHal> InodeRef<Hal> {
             let block_count = file_size.div_ceil(block_size as u64) as u32;
             let bdev = (*self.inner.fs).bdev;
 
-            if pos >= file_size || buf.is_empty() {
+            if pos > file_size {
+                self.set_len(pos)?;
+            }
+            if buf.is_empty() {
                 return Ok(0);
             }
             let to_be_written = buf.len();
@@ -223,6 +226,7 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         }
     }
 
-    // pub fn truncate(&mut self, len: u64) -> Ext4Result<()> {
-    // }
+    pub fn set_len(&mut self, len: u64) -> Ext4Result<()> {
+        todo!()
+    }
 }
