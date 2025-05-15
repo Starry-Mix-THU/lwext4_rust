@@ -6,8 +6,7 @@ use core::{
 use super::InodeRef;
 
 use crate::{
-    error::Context, ffi::*, util::get_block_size, Ext4Error, Ext4Result, InodeType, SystemHal,
-    WritebackGuard,
+    error::Context, ffi::*, util::get_block_size, Ext4Result, InodeType, SystemHal, WritebackGuard,
 };
 
 fn take<'a>(buf: &mut &'a [u8], cnt: usize) -> &'a [u8] {
@@ -236,7 +235,6 @@ impl<Hal: SystemHal> InodeRef<Hal> {
     }
 
     pub fn set_symlink(&mut self, target: &[u8]) -> Ext4Result<()> {
-        let inode = self.raw_inode();
         let block_size = get_block_size(self.superblock());
         if target.len() > block_size as usize {
             // ENAMETOOLONG

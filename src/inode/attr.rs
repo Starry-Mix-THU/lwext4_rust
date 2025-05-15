@@ -54,7 +54,7 @@ fn decode_time(time: u32, extra: u32) -> Duration {
 
 impl<Hal: SystemHal> InodeRef<Hal> {
     pub fn inode_type(&self) -> InodeType {
-        ((self.mode() >> 24) as u8).into()
+        ((self.mode() >> 12) as u8).into()
     }
 
     pub fn is_dir(&self) -> bool {

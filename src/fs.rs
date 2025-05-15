@@ -79,6 +79,16 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
 
     pub(crate) fn alloc_inode(&mut self, ty: InodeType) -> Ext4Result<InodeRef<Hal>> {
         unsafe {
+            let ty = match ty {
+                InodeType::Fifo => EXT4_DE_FIFO,
+                InodeType::CharacterDevice => EXT4_DE_CHRDEV,
+                InodeType::Directory => EXT4_DE_DIR,
+                InodeType::BlockDevice => EXT4_DE_BLKDEV,
+                InodeType::RegularFile => EXT4_DE_REG_FILE,
+                InodeType::Symlink => EXT4_DE_SYMLINK,
+                InodeType::Socket => EXT4_DE_SOCK,
+                InodeType::Unknown => EXT4_DE_UNKNOWN,
+            };
             let mut result = InodeRef::new(mem::zeroed());
             ext4_fs_alloc_inode(self.inner.as_mut(), result.inner.as_mut(), ty as _)
                 .context("ext4_fs_get_inode_ref")?;
@@ -121,7 +131,7 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
             parent.inc_nlink();
             child.set_nlink(2);
         }
-        child.set_mode(mode);
+        child.set_mode((child.mode() & !0o777) | (mode & 0o777));
 
         Ok(child.ino())
     }
@@ -161,7 +171,7 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
     pub fn link(&mut self, dir: u32, name: &str, child: u32) -> Ext4Result {
         let mut child_ref = self.inode_ref(child)?;
         if child_ref.is_dir() {
-            return Err(Ext4Error::new(EISDIR as _, "cannot link to directory"));
+        return Err(Ext4Error::new(EISDIR as _, "cannot link to directory"));
         }
         self.inode_ref(dir)?.add_entry(name, &mut child_ref)?;
         child_ref.inc_nlink();
