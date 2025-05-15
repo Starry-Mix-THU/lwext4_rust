@@ -71,10 +71,10 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
     pub fn with_inode_ref<R>(
         &mut self,
         ino: u32,
-        f: impl FnOnce(&InodeRef<Hal>) -> Ext4Result<R>,
+        f: impl FnOnce(&mut InodeRef<Hal>) -> Ext4Result<R>,
     ) -> Ext4Result<R> {
-        let inode = self.inode_ref(ino)?;
-        f(&inode)
+        let mut inode = self.inode_ref(ino)?;
+        f(&mut inode)
     }
 
     pub(crate) fn alloc_inode(&mut self, ty: InodeType) -> Ext4Result<InodeRef<Hal>> {

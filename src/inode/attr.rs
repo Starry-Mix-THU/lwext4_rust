@@ -86,6 +86,13 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         u16::from_le(self.raw_inode().gid)
     }
 
+    pub fn set_owner(&mut self, uid: u16, gid: u16) {
+        let inode = self.raw_inode_mut();
+        inode.uid = u16::to_le(uid);
+        inode.gid = u16::to_le(gid);
+        self.mark_dirty();
+    }
+
     pub fn set_atime(&mut self, dur: &Duration) {
         let (time, extra) = encode_time(dur);
         let inode = self.raw_inode_mut();
