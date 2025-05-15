@@ -21,6 +21,15 @@ impl SystemHal for DummyHal {
     }
 }
 
+pub struct StatFs {
+    pub inodes_count: u32,
+    pub free_inodes_count: u32,
+
+    pub blocks_count: u64,
+    pub free_blocks_count: u64,
+    pub block_size: u32,
+}
+
 pub struct Ext4Filesystem<Hal: SystemHal, Dev: BlockDevice> {
     inner: Box<ext4_fs>,
     bdev: Ext4BlockDevice<Dev>,
@@ -171,7 +180,7 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
     pub fn link(&mut self, dir: u32, name: &str, child: u32) -> Ext4Result {
         let mut child_ref = self.inode_ref(child)?;
         if child_ref.is_dir() {
-        return Err(Ext4Error::new(EISDIR as _, "cannot link to directory"));
+            return Err(Ext4Error::new(EISDIR as _, "cannot link to directory"));
         }
         self.inode_ref(dir)?.add_entry(name, &mut child_ref)?;
         child_ref.inc_nlink();
@@ -196,6 +205,19 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
             child_ref.dec_nlink();
         }
         Ok(())
+    }
+
+    pub fn stat(&mut self) -> Ext4Result<StatFs> {
+        let sb = &mut self.inner.as_mut().sb;
+        Ok(StatFs {
+            inodes_count: u32::from_le(sb.inodes_count),
+            free_inodes_count: u32::from_le(sb.free_inodes_count),
+            blocks_count: (u32::from_le(sb.blocks_count_hi) as u64) << 32
+                | u32::from_le(sb.blocks_count_lo) as u64,
+            free_blocks_count: (u32::from_le(sb.free_blocks_count_hi) as u64) << 32
+                | u32::from_le(sb.free_blocks_count_lo) as u64,
+            block_size: get_block_size(sb),
+        })
     }
 }
 
