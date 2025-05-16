@@ -262,6 +262,7 @@ impl<Hal: SystemHal> InodeRef<Hal> {
                 )
                 .context("ext4_block_writebytes")?;
             }
+            ext4_inode_set_size(self.inner.inode, target.len() as u64);
         }
 
         Ok(())
