@@ -172,6 +172,10 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
             dst_dir_ref.inc_nlink();
         }
         src_dir_ref.remove_entry(src_name)?;
+        match dst_dir_ref.remove_entry(dst_name) {
+            Err(err) if err.code != ENOENT as i32 => return Err(err),
+            _ => {}
+        }
         dst_dir_ref.add_entry(dst_name, &mut src_ref)?;
 
         Ok(())
