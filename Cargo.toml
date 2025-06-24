@@ -22,4 +22,4 @@ printf-compat = { version = "0.1", default-features = false, optional = true }
 
 # See: https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html
 [build-dependencies]
-bindgen = "0.71"
+bindgen = "0.72"

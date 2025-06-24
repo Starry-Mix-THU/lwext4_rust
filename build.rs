@@ -8,16 +8,16 @@ fn main() {
         .expect("cannot canonicalize path");
 
     let arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
-    let lwext4_lib = &format!("lwext4-{}", arch);
+    let lwext4_lib = &format!("lwext4-{arch}");
     {
         let status = Command::new("make")
-            .args(&[
+            .args([
                 "musl-generic",
                 "-C",
                 c_path.to_str().expect("invalid path of lwext4"),
             ])
-            .arg(&format!("ARCH={}", arch))
-            .arg(&format!(
+            .arg(format!("ARCH={arch}"))
+            .arg(format!(
                 "ULIBC={}",
                 if cfg!(feature = "std") { "OFF" } else { "ON" }
             ))
@@ -26,7 +26,7 @@ fn main() {
         assert!(status.success());
     }
     {
-        let cc = &format!("{}-linux-musl-gcc", arch);
+        let cc = &format!("{arch}-linux-musl-gcc");
         let output = Command::new(cc)
             .args(["-print-sysroot"])
             .output()
@@ -34,7 +34,7 @@ fn main() {
 
         let sysroot = core::str::from_utf8(&output.stdout).unwrap();
         let sysroot = sysroot.trim_end();
-        let sysroot_inc = &format!("-I{}/include/", sysroot);
+        let sysroot_inc = &format!("-I{sysroot}/include/");
 
         generates_bindings_to_rust(sysroot_inc);
     }
@@ -49,6 +49,12 @@ fn main() {
 }
 
 fn generates_bindings_to_rust(mpath: &str) {
+    let target = env::var("TARGET").unwrap();
+    if target.ends_with("-softfloat") {
+        // Clang does not recognize the `-softfloat` suffix
+        unsafe { env::set_var("TARGET", target.replace("-softfloat", "")) };
+    }
+
     let bindings = bindgen::Builder::default()
         .use_core()
         // The input header we would like to generate bindings for.
@@ -64,6 +70,9 @@ fn generates_bindings_to_rust(mpath: &str) {
         // Finish the builder and generate the bindings.
         .generate()
         .expect("Unable to generate bindings");
+
+    // Restore the original target environment variable
+    unsafe { env::set_var("TARGET", target) };
 
     // Write the bindings to the $OUT_DIR/bindings.rs file.
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
