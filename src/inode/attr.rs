@@ -1,6 +1,6 @@
 use core::time::Duration;
 
-use crate::{ffi::*, util::get_block_size, SystemHal};
+use crate::{SystemHal, ffi::*, util::get_block_size};
 
 use super::{InodeRef, InodeType};
 
@@ -62,15 +62,15 @@ impl<Hal: SystemHal> InodeRef<Hal> {
     }
 
     pub fn size(&self) -> u64 {
-        unsafe { ext4_inode_get_size(self.superblock(), self.inner.inode) }
+        unsafe { ext4_inode_get_size(self.superblock() as *const _ as _, self.inner.inode) }
     }
 
     pub fn mode(&self) -> u32 {
-        unsafe { ext4_inode_get_mode(self.superblock(), self.inner.inode) }
+        unsafe { ext4_inode_get_mode(self.superblock() as *const _ as _, self.inner.inode) }
     }
     pub fn set_mode(&mut self, mode: u32) {
         unsafe {
-            ext4_inode_set_mode(self.superblock(), self.inner.inode, mode);
+            ext4_inode_set_mode(self.superblock_mut(), self.inner.inode, mode);
             self.mark_dirty();
         }
     }
@@ -140,8 +140,10 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         attr.uid = self.uid() as _;
         attr.gid = self.gid() as _;
         attr.size = self.size();
-        attr.block_size = get_block_size(&self.superblock()) as _;
-        attr.blocks = unsafe { ext4_inode_get_blocks_count(self.superblock(), self.inner.inode) };
+        attr.block_size = get_block_size(self.superblock()) as _;
+        attr.blocks = unsafe {
+            ext4_inode_get_blocks_count(self.superblock() as *const _ as _, self.inner.inode)
+        };
 
         let inode = self.raw_inode();
         attr.atime = decode_time(inode.access_time, inode.atime_extra);

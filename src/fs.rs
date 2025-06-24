@@ -3,11 +3,11 @@ use core::{marker::PhantomData, mem, time::Duration};
 use alloc::boxed::Box;
 
 use crate::{
+    DirLookupResult, DirReader, Ext4Error, Ext4Result, FileAttr, InodeRef, InodeType,
     blockdev::{BlockDevice, Ext4BlockDevice},
     error::Context,
     ffi::*,
     util::get_block_size,
-    DirLookupResult, DirReader, Ext4Error, Ext4Result, FileAttr, InodeRef, InodeType,
 };
 
 pub trait SystemHal {

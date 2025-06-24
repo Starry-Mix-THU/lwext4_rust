@@ -13,7 +13,10 @@ pub struct Ext4Error {
 }
 impl Ext4Error {
     pub fn new(code: i32, context: impl Into<Option<&'static str>>) -> Self {
-        Ext4Error { code, context: context.into() }
+        Ext4Error {
+            code,
+            context: context.into(),
+        }
     }
 }
 

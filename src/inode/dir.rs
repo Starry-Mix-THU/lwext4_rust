@@ -1,6 +1,6 @@
 use core::{mem, slice};
 
-use crate::{error::Context, ffi::*, util::revision_tuple, Ext4Result, SystemHal};
+use crate::{Ext4Result, SystemHal, error::Context, ffi::*, util::revision_tuple};
 
 use super::{InodeRef, InodeType};
 
@@ -18,7 +18,7 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         }
     }
 
-    pub fn lookup<'a>(mut self, name: &str) -> Ext4Result<DirLookupResult<Hal>> {
+    pub fn lookup(mut self, name: &str) -> Ext4Result<DirLookupResult<Hal>> {
         unsafe {
             let mut result = mem::zeroed();
             ext4_dir_find_entry(
@@ -46,7 +46,7 @@ impl<Hal: SystemHal> InodeRef<Hal> {
             if name != b"." && name != b".." {
                 return Ok(true);
             }
-            reader.next()?;
+            reader.step()?;
         }
         Ok(false)
     }
@@ -160,11 +160,15 @@ impl DirEntry<'_> {
         self.inner.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.inner.len() == 0
+    }
+
     pub fn raw_entry(&self) -> &RawDirEntry {
-        &self.inner
+        self.inner
     }
     pub fn raw_entry_mut(&mut self) -> &mut RawDirEntry {
-        &mut self.inner
+        self.inner
     }
 }
 
@@ -184,7 +188,7 @@ impl<Hal: SystemHal> DirReader<Hal> {
         Some(DirEntry { inner: curr, sb })
     }
 
-    pub fn next(&mut self) -> Ext4Result {
+    pub fn step(&mut self) -> Ext4Result {
         if !self.inner.curr.is_null() {
             unsafe {
                 ext4_dir_iterator_next(&mut self.inner).context("ext4_dir_iterator_next")?;

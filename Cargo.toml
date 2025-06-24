@@ -2,7 +2,7 @@
 name = "lwext4_rust"
 authors = ["Luoyuan Xiao <xiaoluoyuan@163.com>", "Mivik <mivikq@gmail.com>"]
 version = "0.2.0"
-edition = "2021"
+edition = "2024"
 license = "GPL-2.0"
 repository = "https://github.com/Mivik/lwext4_rust"
 description = "lwext4 in Rust"

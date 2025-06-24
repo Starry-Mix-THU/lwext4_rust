@@ -3,13 +3,14 @@ mod uprint {
 
     #[cfg(feature = "print")]
     #[linkage = "weak"]
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     unsafe extern "C" fn printf(str: *const c_char, mut args: ...) -> c_int {
         // extern "C" { pub fn printf(arg1: *const c_char, ...) -> c_int; }
         use printf_compat::{format, output};
 
         let mut s = alloc::string::String::new();
-        let bytes_written = format(str as _, args.as_va_list(), output::fmt_write(&mut s));
+        let bytes_written =
+            unsafe { format(str as _, args.as_va_list(), output::fmt_write(&mut s)) };
         //println!("{}", s);
         info!("{}", s);
 
@@ -18,8 +19,8 @@ mod uprint {
 
     #[cfg(not(feature = "print"))]
     #[linkage = "weak"]
-    #[no_mangle]
-    unsafe extern "C" fn printf(str: *const c_char, mut args: ...) -> c_int {
+    #[unsafe(no_mangle)]
+    unsafe extern "C" fn printf(str: *const c_char, _args: ...) -> c_int {
         use core::ffi::CStr;
         let c_str = unsafe { CStr::from_ptr(str) };
         //let arg1 = args.arg::<usize>();
@@ -30,22 +31,22 @@ mod uprint {
 }
 
 mod ualloc {
-    use alloc::alloc::{alloc, dealloc, Layout};
+    use alloc::alloc::{Layout, alloc, dealloc};
     use alloc::slice::from_raw_parts_mut;
     use core::cmp::min;
     use core::ffi::{c_int, c_size_t, c_void};
 
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     pub extern "C" fn ext4_user_calloc(m: c_size_t, n: c_size_t) -> *mut c_void {
         let mem = ext4_user_malloc(m * n);
 
-        extern "C" {
+        unsafe extern "C" {
             pub fn memset(dest: *mut c_void, c: c_int, n: c_size_t) -> *mut c_void;
         }
         unsafe { memset(mem, 0, m * n) }
     }
 
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     pub extern "C" fn ext4_user_realloc(memblock: *mut c_void, size: c_size_t) -> *mut c_void {
         if memblock.is_null() {
             warn!("realloc a a null mem pointer");
@@ -74,7 +75,7 @@ mod ualloc {
     const CTRL_BLK_SIZE: usize = core::mem::size_of::<MemoryControlBlock>();
 
     /// Allocate size bytes memory and return the memory address.
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     pub extern "C" fn ext4_user_malloc(size: c_size_t) -> *mut c_void {
         // Allocate `(actual length) + 8`. The lowest 8 Bytes are stored in the actual allocated space size.
         let layout = Layout::from_size_align(size + CTRL_BLK_SIZE, 8).unwrap();
@@ -90,7 +91,7 @@ mod ualloc {
     }
 
     /// Deallocate memory at ptr address
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     pub extern "C" fn ext4_user_free(ptr: *mut c_void) {
         if ptr.is_null() {
             warn!("free a null pointer !");

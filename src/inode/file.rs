@@ -6,7 +6,7 @@ use core::{
 use super::InodeRef;
 
 use crate::{
-    error::Context, ffi::*, util::get_block_size, Ext4Result, InodeType, SystemHal, WritebackGuard,
+    Ext4Result, InodeType, SystemHal, WritebackGuard, error::Context, ffi::*, util::get_block_size,
 };
 
 fn take<'a>(buf: &mut &'a [u8], cnt: usize) -> &'a [u8] {

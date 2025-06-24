@@ -3,7 +3,7 @@ use core::{
     mem, ptr, slice,
 };
 
-use crate::{error::Context, ffi::*, Ext4Result};
+use crate::{Ext4Result, error::Context, ffi::*};
 use alloc::boxed::Box;
 
 /// Device block size.
@@ -96,14 +96,14 @@ impl<Dev: BlockDevice> Ext4BlockDevice<Dev> {
         &'a mut ext4_blockdev_iface,
         &'a mut Dev,
     ) {
-        let bdev = &mut *bdev;
-        let bdif = &mut *bdev.bdif;
-        let dev = &mut *(bdif.p_user as *mut Dev);
+        let bdev = unsafe { &mut *bdev };
+        let bdif = unsafe { &mut *bdev.bdif };
+        let dev = unsafe { &mut *(bdif.p_user as *mut Dev) };
         (bdev, bdif, dev)
     }
     unsafe extern "C" fn dev_open(bdev: *mut ext4_blockdev) -> c_int {
         debug!("open ext4 block device");
-        let (bdev, bdif, dev) = Self::dev_read_fields(bdev);
+        let (bdev, bdif, dev) = unsafe { Self::dev_read_fields(bdev) };
 
         bdif.ph_bcnt = match dev.num_blocks() {
             Ok(cur) => cur,
@@ -128,8 +128,8 @@ impl<Dev: BlockDevice> Ext4BlockDevice<Dev> {
             return EOK as _;
         }
 
-        let (_bdev, bdif, dev) = Self::dev_read_fields(bdev);
-        let buf_len = (bdif.ph_bsize * blk_cnt * 1) as usize;
+        let (_bdev, bdif, dev) = unsafe { Self::dev_read_fields(bdev) };
+        let buf_len = (bdif.ph_bsize * blk_cnt) as usize;
         let buffer = unsafe { slice::from_raw_parts_mut(buf as *mut u8, buf_len) };
         if let Err(err) = dev.read_blocks(blk_id, buffer) {
             error!("read_blocks failed: {err:?}");
@@ -149,8 +149,8 @@ impl<Dev: BlockDevice> Ext4BlockDevice<Dev> {
             return EOK as _;
         }
 
-        let (_bdev, bdif, dev) = Self::dev_read_fields(bdev);
-        let buf_len = (bdif.ph_bsize * blk_cnt * 1) as usize;
+        let (_bdev, bdif, dev) = unsafe { Self::dev_read_fields(bdev) };
+        let buf_len = (bdif.ph_bsize * blk_cnt) as usize;
         let buffer = unsafe { slice::from_raw_parts(buf as *const u8, buf_len) };
         if let Err(err) = dev.write_blocks(blk_id, buffer) {
             error!("read_blocks failed: {err:?}");

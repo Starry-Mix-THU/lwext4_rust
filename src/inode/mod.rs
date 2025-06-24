@@ -8,7 +8,7 @@ pub use dir::{DirEntry, DirLookupResult, DirReader};
 
 use core::marker::PhantomData;
 
-use crate::{ffi::*, SystemHal};
+use crate::{SystemHal, ffi::*};
 
 /// Inode type.
 #[repr(u8)]
@@ -56,7 +56,10 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         self.inner.index
     }
 
-    pub(crate) fn superblock(&self) -> &mut ext4_sblock {
+    pub(crate) fn superblock(&self) -> &ext4_sblock {
+        unsafe { &(*self.inner.fs).sb }
+    }
+    pub(crate) fn superblock_mut(&mut self) -> &mut ext4_sblock {
         unsafe { &mut (*self.inner.fs).sb }
     }
 
@@ -85,7 +88,7 @@ impl<Hal: SystemHal> InodeRef<Hal> {
     pub(crate) fn raw_inode(&self) -> &ext4_inode {
         unsafe { &*self.inner.inode }
     }
-    pub(crate) fn raw_inode_mut(&self) -> &mut ext4_inode {
+    pub(crate) fn raw_inode_mut(&mut self) -> &mut ext4_inode {
         unsafe { &mut *self.inner.inode }
     }
 }
