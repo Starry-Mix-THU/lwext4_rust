@@ -10,7 +10,8 @@ fn main() {
     let arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
     let lwext4_lib = &format!("lwext4-{arch}");
     {
-        let status = Command::new("make")
+        let mut command = Command::new("make");
+        command
             .args([
                 "musl-generic",
                 "-C",
@@ -20,7 +21,17 @@ fn main() {
             .arg(format!(
                 "ULIBC={}",
                 if cfg!(feature = "std") { "OFF" } else { "ON" }
-            ))
+            ));
+        match env::var("TARGET").unwrap().as_str() {
+            "aarch64-unknown-none-softfloat" => {
+                command.arg("CFLAGS=-mgeneral-regs-only");
+            }
+            "loongarch64-unknown-none-softfloat" => {
+                command.arg("CFLAGS=-msoft-float");
+            }
+            _ => {}
+        }
+        let status = command
             .status()
             .expect("failed to execute process: make lwext4");
         assert!(status.success());
@@ -57,6 +68,7 @@ fn generates_bindings_to_rust(mpath: &str) {
 
     let bindings = bindgen::Builder::default()
         .use_core()
+        .wrap_unsafe_ops(true)
         // The input header we would like to generate bindings for.
         .header("c/wrapper.h")
         //.clang_arg("--sysroot=/path/to/sysroot")
