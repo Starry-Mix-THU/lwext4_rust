@@ -57,6 +57,7 @@ fn generates_bindings_to_rust(mpath: &str) {
 
     let bindings = bindgen::Builder::default()
         .use_core()
+        .wrap_unsafe_ops(true)
         // The input header we would like to generate bindings for.
         .header("c/wrapper.h")
         //.clang_arg("--sysroot=/path/to/sysroot")
