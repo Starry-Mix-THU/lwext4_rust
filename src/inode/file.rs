@@ -273,7 +273,18 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         if len < cur_len {
             self.truncate(len)?;
         } else if len > cur_len {
-            todo!()
+            // TODO: correct implementation
+            let block_size = get_block_size(self.superblock());
+            let old_blocks = cur_len.div_ceil(block_size as u64) as u32;
+            let new_blocks = len.div_ceil(block_size as u64) as u32;
+            for block in old_blocks..new_blocks {
+                let (fblock, new_block) = self.append_inode_fblock()?;
+                assert_eq!(block, new_block);
+            }
+            unsafe {
+                ext4_inode_set_size(self.inner.inode, len);
+            }
+            self.mark_dirty();
         }
         Ok(())
     }
