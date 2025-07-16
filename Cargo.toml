@@ -18,7 +18,7 @@ std = []
 [dependencies]
 lock_api = "0.4.12"
 log = "0.4"
-printf-compat = { version = "0.1", default-features = false, optional = true }
+printf-compat = { git = "https://github.com/lights0123/printf-compat.git", rev = "5f5c9cc", default-features = false, optional = true }
 
 # See: https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html
 [build-dependencies]
