@@ -151,14 +151,17 @@ impl<Hal: SystemHal> InodeRef<Hal> {
 
     pub fn write_at(&mut self, mut buf: &[u8], pos: u64) -> Ext4Result<usize> {
         unsafe {
-            let file_size = self.size();
+            let mut file_size = self.size();
+            if pos > file_size {
+                self.set_len(pos)?;
+                // If we extend the file, we need to update the file size.
+                file_size = self.size();
+            }
+
             let block_size = get_block_size(self.superblock());
             let block_count = file_size.div_ceil(block_size as u64) as u32;
             let bdev = (*self.inner.fs).bdev;
 
-            if pos > file_size {
-                self.set_len(pos)?;
-            }
             if buf.is_empty() {
                 return Ok(0);
             }
