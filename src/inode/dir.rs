@@ -51,17 +51,17 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         Ok(false)
     }
 
-    pub(crate) fn add_entry(&mut self, name: &str, child: &mut InodeRef<Hal>) -> Ext4Result {
+    pub(crate) fn add_entry(&mut self, name: &str, entry: &mut InodeRef<Hal>) -> Ext4Result {
         unsafe {
             ext4_dir_add_entry(
                 self.inner.as_mut(),
                 name.as_ptr() as *const _,
                 name.len() as _,
-                child.inner.as_mut(),
+                entry.inner.as_mut(),
             )
             .context("ext4_dir_add_entry")?;
         }
-        child.inc_nlink();
+        entry.inc_nlink();
         Ok(())
     }
     pub(crate) fn remove_entry(&mut self, name: &str) -> Ext4Result {

@@ -229,7 +229,7 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         }
     }
 
-    fn truncate(&mut self, size: u64) -> Ext4Result<()> {
+    pub fn truncate(&mut self, size: u64) -> Ext4Result<()> {
         unsafe {
             let bdev = (*self.inner.fs).bdev;
             let _guard = WritebackGuard::new(bdev);

@@ -21,6 +21,7 @@ impl SystemHal for DummyHal {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct StatFs {
     pub inodes_count: u32,
     pub free_inodes_count: u32,
@@ -137,7 +138,6 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
         if ty == InodeType::Directory {
             child.add_entry(".", &mut self.clone_ref(&child))?;
             child.add_entry("..", &mut parent)?;
-            parent.inc_nlink();
             child.set_nlink(2);
         }
         child.set_mode((child.mode() & !0o777) | (mode & 0o777));
@@ -172,10 +172,6 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
             dst_dir_ref.inc_nlink();
         }
         src_dir_ref.remove_entry(src_name)?;
-        match dst_dir_ref.remove_entry(dst_name) {
-            Err(err) if err.code != ENOENT as i32 => return Err(err),
-            _ => {}
-        }
         dst_dir_ref.add_entry(dst_name, &mut src_ref)?;
 
         Ok(())
@@ -187,7 +183,6 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
             return Err(Ext4Error::new(EISDIR as _, "cannot link to directory"));
         }
         self.inode_ref(dir)?.add_entry(name, &mut child_ref)?;
-        child_ref.inc_nlink();
         Ok(())
     }
 
@@ -199,6 +194,14 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
         if self.clone_ref(&child_ref).has_children()? {
             return Err(Ext4Error::new(ENOTEMPTY as _, None));
         }
+        if child_ref.inode_type() != InodeType::Directory {
+            child_ref.truncate(0)?;
+        } else {
+            // According to `ext4_trunc_dir`
+            let bs = get_block_size(&self.inner.as_mut().sb);
+            child_ref.truncate(bs as _)?;
+            child_ref.truncate(0)?;
+        }
 
         dir_ref.remove_entry(name)?;
 
@@ -207,6 +210,10 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
         }
         if child_ref.nlink() > 0 {
             child_ref.dec_nlink();
+        }
+        child_ref.set_nlink(0);
+        unsafe {
+            ext4_fs_free_inode(child_ref.inner.as_mut());
         }
         Ok(())
     }
@@ -228,6 +235,10 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
 impl<Hal: SystemHal, Dev: BlockDevice> Drop for Ext4Filesystem<Hal, Dev> {
     fn drop(&mut self) {
         unsafe {
+            let r = ext4_fs_fini(self.inner.as_mut());
+            if r != 0 {
+                log::error!("ext4_fs_fini failed: {}", Ext4Error::new(r, None));
+            }
             let bdev = self.bdev.inner.as_mut();
             ext4_bcache_cleanup(bdev.bc);
             ext4_bcache_fini_dynamic(bdev.bc);

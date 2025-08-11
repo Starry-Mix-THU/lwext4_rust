@@ -95,8 +95,9 @@ impl<Hal: SystemHal> InodeRef<Hal> {
 
 impl<Hal: SystemHal> Drop for InodeRef<Hal> {
     fn drop(&mut self) {
-        unsafe {
-            ext4_fs_put_inode_ref(self.inner.as_mut());
+        let ret = unsafe { ext4_fs_put_inode_ref(self.inner.as_mut()) };
+        if ret != 0 {
+            panic!("ext4_fs_put_inode_ref failed: {}", ret);
         }
     }
 }
