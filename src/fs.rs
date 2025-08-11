@@ -230,6 +230,13 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
             block_size: get_block_size(sb),
         })
     }
+
+    pub fn flush(&mut self) -> Ext4Result<()> {
+        unsafe {
+            ext4_block_cache_flush(self.bdev.inner.as_mut()).context("ext4_cache_flush")?;
+        }
+        Ok(())
+    }
 }
 
 impl<Hal: SystemHal, Dev: BlockDevice> Drop for Ext4Filesystem<Hal, Dev> {
