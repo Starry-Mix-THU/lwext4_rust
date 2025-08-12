@@ -74,9 +74,7 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         self.mark_dirty();
     }
     pub(crate) fn dec_nlink(&mut self) {
-        unsafe {
-            ext4_fs_inode_links_count_dec(self.inner.as_mut());
-        }
+        self.set_nlink(self.nlink() - 1);
         self.mark_dirty();
     }
 

@@ -64,15 +64,17 @@ impl<Hal: SystemHal> InodeRef<Hal> {
         entry.inc_nlink();
         Ok(())
     }
-    pub(crate) fn remove_entry(&mut self, name: &str) -> Ext4Result {
+    pub(crate) fn remove_entry(&mut self, name: &str, entry: &mut InodeRef<Hal>) -> Ext4Result {
         unsafe {
             ext4_dir_remove_entry(
                 self.inner.as_mut(),
                 name.as_ptr() as *const _,
                 name.len() as _,
             )
-            .context("ext4_dir_remove_entry")
+            .context("ext4_dir_remove_entry")?;
         }
+        entry.dec_nlink();
+        Ok(())
     }
 }
 

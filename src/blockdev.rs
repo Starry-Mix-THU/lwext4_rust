@@ -72,6 +72,11 @@ impl<Dev: BlockDevice> Ext4BlockDevice<Dev> {
 
         unsafe {
             ext4_block_init(blockdev.as_mut()).context("ext4_block_init")?;
+            ext4_block_cache_write_back(blockdev.as_mut(), 1)
+                .context("ext4_block_cache_write_back")
+                .inspect_err(|_| {
+                    ext4_block_fini(blockdev.as_mut());
+                })?;
         }
         Ok(Self {
             inner: blockdev,

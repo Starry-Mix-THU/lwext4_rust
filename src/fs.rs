@@ -171,7 +171,7 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
             src_dir_ref.dec_nlink();
             dst_dir_ref.inc_nlink();
         }
-        src_dir_ref.remove_entry(src_name)?;
+        src_dir_ref.remove_entry(src_name, &mut src_ref)?;
         dst_dir_ref.add_entry(dst_name, &mut src_ref)?;
 
         Ok(())
@@ -194,26 +194,24 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
         if self.clone_ref(&child_ref).has_children()? {
             return Err(Ext4Error::new(ENOTEMPTY as _, None));
         }
-        if child_ref.inode_type() != InodeType::Directory {
-            child_ref.truncate(0)?;
-        } else {
+        if child_ref.inode_type() == InodeType::Directory {
             // According to `ext4_trunc_dir`
             let bs = get_block_size(&self.inner.as_mut().sb);
             child_ref.truncate(bs as _)?;
-            child_ref.truncate(0)?;
         }
 
-        dir_ref.remove_entry(name)?;
+        dir_ref.remove_entry(name, &mut child_ref)?;
 
         if child_ref.is_dir() {
             dir_ref.dec_nlink();
         }
-        if child_ref.nlink() > 0 {
-            child_ref.dec_nlink();
-        }
-        child_ref.set_nlink(0);
-        unsafe {
-            ext4_fs_free_inode(child_ref.inner.as_mut());
+        if child_ref.nlink() == 0 {
+            child_ref.truncate(0)?;
+            unsafe {
+                ext4_inode_set_del_time(child_ref.inner.inode, u32::MAX);
+                child_ref.mark_dirty();
+                ext4_fs_free_inode(child_ref.inner.as_mut());
+            }
         }
         Ok(())
     }
@@ -248,6 +246,7 @@ impl<Hal: SystemHal, Dev: BlockDevice> Drop for Ext4Filesystem<Hal, Dev> {
             }
             let bdev = self.bdev.inner.as_mut();
             ext4_bcache_cleanup(bdev.bc);
+            ext4_block_fini(bdev);
             ext4_bcache_fini_dynamic(bdev.bc);
         }
     }
