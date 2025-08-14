@@ -138,7 +138,7 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
         if ty == InodeType::Directory {
             child.add_entry(".", &mut self.clone_ref(&child))?;
             child.add_entry("..", &mut parent)?;
-            child.set_nlink(2);
+            assert_eq!(child.nlink(), 2);
         }
         child.set_mode((child.mode() & !0o777) | (mode & 0o777));
 
@@ -204,6 +204,7 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
 
         if child_ref.is_dir() {
             dir_ref.dec_nlink();
+            child_ref.dec_nlink();
         }
         if child_ref.nlink() == 0 {
             child_ref.truncate(0)?;
