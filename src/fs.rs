@@ -22,6 +22,18 @@ impl SystemHal for DummyHal {
 }
 
 #[derive(Debug, Clone)]
+pub struct FsConfig {
+    pub bcache_size: u32,
+}
+impl Default for FsConfig {
+    fn default() -> Self {
+        Self {
+            bcache_size: CONFIG_BLOCK_DEV_CACHE_SIZE,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct StatFs {
     pub inodes_count: u32,
     pub free_inodes_count: u32,
@@ -38,7 +50,7 @@ pub struct Ext4Filesystem<Hal: SystemHal, Dev: BlockDevice> {
 }
 
 impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
-    pub fn new(dev: Dev) -> Ext4Result<Self> {
+    pub fn new(dev: Dev, config: FsConfig) -> Ext4Result<Self> {
         let mut bdev = Ext4BlockDevice::new(dev)?;
         let mut fs = Box::new(unsafe { mem::zeroed() });
         unsafe {
@@ -47,7 +59,7 @@ impl<Hal: SystemHal, Dev: BlockDevice> Ext4Filesystem<Hal, Dev> {
 
             let bs = get_block_size(&fs.sb);
             ext4_block_set_lb_size(bd, bs);
-            ext4_bcache_init_dynamic(bd.bc, CONFIG_BLOCK_DEV_CACHE_SIZE, bs)
+            ext4_bcache_init_dynamic(bd.bc, config.bcache_size, bs)
                 .context("ext4_bcache_init_dynamic")?;
             if bs != (*bd.bc).itemsize {
                 return Err(Ext4Error::new(ENOTSUP as _, "block size mismatch"));
