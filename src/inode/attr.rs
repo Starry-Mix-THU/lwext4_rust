@@ -47,7 +47,7 @@ fn decode_time(time: u32, extra: u32) -> Duration {
     let sec = u32::from_le(time);
     let extra = u32::from_le(extra);
     let epoch = extra & 3;
-    let nsec = epoch >> 2;
+    let nsec = extra >> 2;
 
     Duration::new(sec as u64 + ((epoch as u64) << 32), nsec)
 }
